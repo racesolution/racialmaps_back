@@ -1,0 +1,56 @@
+name: Sincronización Nocturna de Datos del Mapa
+
+on:
+  schedule:
+    # Ejecuta todas las noches a las 23:11 UTC
+    - cron: '11 23 * * *'
+  workflow_dispatch: # Te permite ejecutar el robot manualmente desde GitHub cuando quieras
+
+jobs:
+  build-and-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Trae el código del backend para que el robot tenga acceso a exportBDCentral.js
+    - name: Checkout Backend
+      uses: actions/checkout@v4
+
+    # 2. Configura un entorno limpio de Node.js v20
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # 3. Instala las dependencias necesarias del backend (node-fetch, dotenv, etc.)
+    - name: Install Dependencies
+      run: npm install
+
+    # 4. Ejecuta el script independiente usando la URL protegida de tu API Central
+    - name: Run Export Script
+      env:
+        VITE_API_CENTRAL_URL: ${{ secrets.VITE_API_CENTRAL_URL }}
+      run: node exportBDCentral.js
+
+    # 5. Descarga el repositorio frontend, le inyecta el CSV y hace el push definitivo
+    - name: Push CSV to Frontend Repository
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.FRONTEND_REPO_TOKEN }}
+      run: |
+        git config --global user.name "RacialMaps Bot"
+        git config --global user.email "bot@racialmaps.com"
+        
+        # Clonamos el repositorio del frontend de forma temporal en el servidor virtual de GitHub
+        git clone https://x-access-token:${{ secrets.FRONTEND_REPO_TOKEN }}@github.com/${{ github.repository_owner }}/racialmaps_front.git frontend_dir
+        
+        # Copiamos el archivo CSV recién generado a la carpeta public del frontend
+        cp datos-mapa.csv frontend_dir/public/datos-mapa.csv
+        
+        # Entramos al directorio del front para evaluar cambios y subirlos
+        cd frontend_dir
+        git add public/datos-mapa.csv
+        if ! git diff --cached --quiet; then
+          git commit -m "data: actualización automática del mapa nocturno (23:11)"
+          git push origin main
+        else
+          echo "No hay cambios nuevos en los datos hoy. Evitando push innecesario."
+        fi
