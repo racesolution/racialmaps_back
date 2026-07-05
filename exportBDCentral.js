@@ -31,26 +31,28 @@ async function exportarBDCentral() {
       return;
     }
 
-    // 2. Procesamiento y Limpieza (Comas por Puntos decimales)
-    const columnas = Object.keys(listaCiudades[0]);
+    // 2. Mapeo directo y ordenado de columnas tal cual tu GSheets
+    const columnas = ["Ciudad", "Latitud", "Longitud", "RazaBlanca", "RazaNegra", "RazaRoja", "RazaAmarilla", "Poblacion"];
+    const cabecera = columnas.join(",");
+
     const filasCsv = listaCiudades.map(ciudad => {
-      return columnas.map(nombreColumna => {
-        let valor = ciudad[nombreColumna];
+      return columnas.map(col => {
+        let valor = ciudad[col];
         
-        // Limpieza de decimales tipo String ("-31,42" -> -31.42)
-        if (typeof valor === 'string' && /^\s*-?\d+,\d+\s*$/.test(valor)) {
-          valor = parseFloat(valor.replace(',', '.'));
-        }
+        // Control por si falta algún dato
+        if (valor === undefined || valor === null) return "";
         
-        // Encapsular textos que contengan comas internas
+        // Si es un texto y tiene comas internas, lo envolvemos en comillas
         if (typeof valor === 'string' && valor.includes(',')) {
           return `"${valor}"`;
         }
+        
+        // Los números y textos limpios pasan directo sin alterarse
         return valor;
       }).join(',');
     });
 
-    const contenidoCsv = [columnas.join(','), ...filasCsv].join('\n');
+    const contenidoCsv = [cabecera, ...filasCsv].join('\n');
 
     // 3. Escritura física del archivo CSV en el disco del robot
     fs.writeFileSync(OUTPUT_PATH, contenidoCsv, 'utf8');
