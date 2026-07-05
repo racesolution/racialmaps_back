@@ -1,12 +1,12 @@
-import { GoogleGenAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Inicializamos el cliente de IA con la API Key de tu entorno
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Inicializamos el cliente oficial con la API Key
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-export const consultarIAAntropologica = async (preguntaUsuario) => {
+export const chatRaceExpert = async (preguntaUsuario) => {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("Falta la configuración de GEMINI_API_KEY en las variables de entorno.");
   }
@@ -21,15 +21,19 @@ export const consultarIAAntropologica = async (preguntaUsuario) => {
     responde amablemente diciendo que solo estás capacitado para responder dudas sobre el contexto histórico y demográfico de las poblaciones.
   `;
 
-  // Ejecutamos la consulta usando el modelo estándar optimizado para texto (gemini-2.5-flash)
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: preguntaUsuario,
-    config: {
-      systemInstruction: systemInstruction,
+  // Obtenemos el modelo optimizado de Gemini
+  const model = genAI.getGenerativeModel({ 
+    model: 'gemini-1.5-flash', // Versión estándar, ultra veloz y compatible con el Plan Free
+    systemInstruction: systemInstruction
+  });
+
+  // Ejecutamos la consulta pasándole la pregunta y configurando el comportamiento lógico
+  const response = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: preguntaUsuario }] }],
+    generationConfig: {
       temperature: 0.3 // Mantenemos la temperatura baja para respuestas lógicas y científicas
     }
   });
 
-  return response.text;
+  return response.response.text();
 };
