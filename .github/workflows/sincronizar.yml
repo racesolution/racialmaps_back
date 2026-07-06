@@ -39,8 +39,8 @@ jobs:
         git config --global user.name "RacialMaps Bot"
         git config --global user.email "bot@racialmaps.com"
         
-        # Clonamos el repositorio del frontend de forma temporal en el servidor virtual de GitHub
-        git clone https://x-access-token:${{ secrets.FRONTEND_REPO_TOKEN }}@github.com/${{ github.repository_owner }}/racialmaps_front.git frontend_dir
+        # 💡 CAMBIO CLAVE AQUÍ: Forzamos a Git a clonar EXCLUSIVAMENTE la rama master
+        git clone --single-branch --branch master https://x-access-token:${{ secrets.FRONTEND_REPO_TOKEN }}@github.com/${{ github.repository_owner }}/racialmaps_front.git frontend_dir
         
         # Copiamos el archivo CSV recién generado a la carpeta public del frontend
         cp datos-mapa.csv frontend_dir/public/datos-mapa.csv
